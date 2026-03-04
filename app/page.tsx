@@ -460,7 +460,7 @@ export default function Page() {
         ...prev,
         [i]: {
           ...prev[i],
-          [nextKey]: blankACSub(false),
+          [nextKey]: blankACSub(true),
         },
       }
     })
