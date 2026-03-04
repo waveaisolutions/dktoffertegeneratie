@@ -176,14 +176,14 @@ offertezin
 beschrijft type installatie + ruimte
 
 Specificatieinstallatie&uitgangspunten
-Begin elke optie op een NIEUWE REGEL met de header: "Optie X.X – [locatie]:" (vetgedrukt, gevolgd door een lege regel).
-Schrijf daarna 3 tot 5 beknopte zinnen die de werkzaamheden voor die optie beschrijven.
-Sluit elke optie af met een LEGE REGEL zodat opties visueel gescheiden zijn.
-Verwerk alle relevante informatie, maar noem nooit de variabelen letterlijk.
+Begin elke optie op een NIEUWE REGEL met de header: "Optie X.X – [locatie]:" gevolgd door een lege regel.
+Schrijf daarna een volledige technische beschrijving van die optie (~100 woorden per optie).
+Sluit elke optie af met een LEGE REGEL zodat opties visueel van elkaar gescheiden zijn.
+Verwerk alle relevante informatie inhoudelijk, maar noem nooit de variabelen letterlijk.
 JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
 Noem gutterColor nooit in dit tekstveld.
 De tekst moet klinken als een normale technische werkomschrijving.
-Blijf feitelijk en concreet.
+Blijf feitelijk en concreet. Maak het geheel ongeveer 300 woorden in totaal.
 Gebruik de broncodes zoals 1.1 of 2.3 in de header van elke optie.
 NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
 Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
@@ -333,14 +333,14 @@ beschrijft type installatie + ruimte
 JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
 
 Specificatieinstallatie&uitgangspuntenV2
-Begin elke optie op een NIEUWE REGEL met de header: "Optie X – [type warmtepomp]:" (vetgedrukt, gevolgd door een lege regel).
-Schrijf daarna 3 tot 5 beknopte zinnen die de werkzaamheden voor die optie beschrijven.
-Sluit elke optie af met een LEGE REGEL zodat opties visueel gescheiden zijn.
-Verwerk alle relevante informatie, maar noem nooit de variabelen letterlijk.
+Begin elke optie op een NIEUWE REGEL met de header: "Optie X – [type warmtepomp]:" gevolgd door een lege regel.
+Schrijf daarna een volledige technische beschrijving van die optie (~150 woorden per optie).
+Sluit elke optie af met een LEGE REGEL zodat opties visueel van elkaar gescheiden zijn.
+Verwerk alle relevante informatie inhoudelijk, maar noem nooit de variabelen letterlijk.
 JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
 Noem gutterColor nooit in dit tekstveld.
 De tekst moet klinken als een normale technische werkomschrijving.
-Blijf feitelijk en concreet.
+Blijf feitelijk en concreet. Maak het geheel ongeveer 300 woorden in totaal.
 Gebruik de broncodes zoals 1 en 2 in de header van elke optie.
 NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
 Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
