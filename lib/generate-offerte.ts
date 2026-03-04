@@ -176,21 +176,17 @@ offertezin
 beschrijft type installatie + ruimte
 
 Specificatieinstallatie&uitgangspunten
-Schrijf voor elke optie waarvoor enabled = true een technische installatietekst.
+Begin elke optie op een NIEUWE REGEL met de header: "Optie X.X – [locatie]:" (vetgedrukt, gevolgd door een lege regel).
+Schrijf daarna 3 tot 5 beknopte zinnen die de werkzaamheden voor die optie beschrijven.
+Sluit elke optie af met een LEGE REGEL zodat opties visueel gescheiden zijn.
 Verwerk alle relevante informatie, maar noem nooit de variabelen letterlijk.
 JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
-De tekst moet per optie worden beschreven in natuurlijke installatietaal.
 Noem gutterColor nooit in dit tekstveld.
-Verwerk deze gegevens inhoudelijk in een samenhangende beschrijving.
-Je mag de velden niet 1 voor 1 opsommen of als bulletpoints tonen.
 De tekst moet klinken als een normale technische werkomschrijving.
 Blijf feitelijk en concreet.
-Maak het geheel ongeveer 300 woorden in totaal, waarbij elke optie een duidelijke paragraaf krijgt.
-op basis van de volgorde waarin enabled = true is gevonden.
-Gebruik de broncodes zoals 1.1 of 2.3 in de tekst.
-Het is dus heel belangrijk dat de verschillende opties benoemd worden. er wordt meestal niet meer dan 1 optie geplaatst waardoor je dit dus ook verschillende opties moet noemen. DIT IS HEEL BELANGRIJK BIJ HET ONDERDEEEL: "Specificatieinstallatie&uitgangspunten"
-NOEM HET HIER DAN OOK OPTIE EN NIET INSTALLATIE OF DAT DIT AL GEINSTALLLEERD IS AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
-Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd. Plaats na elke optie een enter
+Gebruik de broncodes zoals 1.1 of 2.3 in de header van elke optie.
+NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
+Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
 
 ${optiesTekst}
 
@@ -337,20 +333,17 @@ beschrijft type installatie + ruimte
 JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
 
 Specificatieinstallatie&uitgangspuntenV2
-Schrijf voor elke optie waarvoor enabled = true een technische installatietekst.
+Begin elke optie op een NIEUWE REGEL met de header: "Optie X – [type warmtepomp]:" (vetgedrukt, gevolgd door een lege regel).
+Schrijf daarna 3 tot 5 beknopte zinnen die de werkzaamheden voor die optie beschrijven.
+Sluit elke optie af met een LEGE REGEL zodat opties visueel gescheiden zijn.
 Verwerk alle relevante informatie, maar noem nooit de variabelen letterlijk.
-Het is dus heel belangrijk dat de verschillende opties benoemd worden. er wordt meestal niet meer dan 1 optie geplaatst waardoor je dit dus ook verschillende opties moet noemen. DIT IS HEEL BELANGRIJK BIJ HET ONDERDEEEL: "Specificatieinstallatie&uitgangspunten"
-NOEM HET HIER DAN OOK OPTIE EN NIET INSTALLATIE OF DAT DIT AL GEINSTALLLEERD IS AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN. Dit zijn altijd maar 2 opties. KIJK HIERBIJ NAAR DE BRONCODES
-De tekst moet per optie worden beschreven in natuurlijke installatietaal.
+JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
 Noem gutterColor nooit in dit tekstveld.
-Verwerk deze gegevens inhoudelijk in een samenhangende beschrijving.
-Je mag de velden niet 1 voor 1 opsommen of als bulletpoints tonen.
 De tekst moet klinken als een normale technische werkomschrijving.
 Blijf feitelijk en concreet.
-Maak het geheel ongeveer 300 woorden in totaal, waarbij elke optie een duidelijke paragraaf krijgt.
-op basis van de volgorde waarin enabled = true is gevonden.
-Gebruik de broncodes zoals 1 en 2 in de tekst.
-Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd. Plaats na elke optie een enter
+Gebruik de broncodes zoals 1 en 2 in de header van elke optie.
+NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
+Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
 
 ${buildOptie("1")}
 ${buildOptie("2")}
