@@ -156,6 +156,8 @@ Afvoer
 ${nv(opt.drain)}
 Hoekpompje
 ${nv(opt.cornerPump)}
+Opmerkingen
+${opt.remarks ?? ""}
 `
     }
   }
@@ -311,6 +313,8 @@ ${nv(opt.powerSupply)}
 ${nv(opt.voltage380Present)}
 Meetrapport energie noodzakelijk
 ${nv(opt.energyReportRequired)}
+Opmerkingen
+${opt.remarks ?? ""}
 `
   }
 
