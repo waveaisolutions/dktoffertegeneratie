@@ -254,7 +254,7 @@ function ACField({ label, k, currentValue, currentNote, onValueChange, onNoteCha
           <button
             key={opt}
             type="button"
-            onClick={() => onValueChange(opt)}
+            onClick={() => onValueChange(currentValue === opt ? "" : opt)}
             style={{
               padding: "8px 16px",
               borderRadius: 8,
@@ -327,7 +327,7 @@ function HPField({
               <button
                 key={opt}
                 type="button"
-                onClick={() => (multiSelect ? handleMultiSelectToggle(opt) : onValueChange(opt))}
+                onClick={() => (multiSelect ? handleMultiSelectToggle(opt) : onValueChange(currentValue === opt ? "" : opt))}
                 style={{
                   padding: "8px 16px",
                   borderRadius: 8,
