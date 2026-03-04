@@ -14,10 +14,12 @@ interface NoteField {
 interface ACSubOption {
   enabled: boolean
   location: NoteField
+  indoorUnitPlace: NoteField
   color: NoteField
   daikinType: NoteField
   outdoorType: NoteField
   outdoorPlace: NoteField
+  pipeRoute: NoteField
   acType: NoteField
   dryCoreDrilling: NoteField
   concrete: NoteField
@@ -57,6 +59,7 @@ interface HPSubOption {
   numberOfPeople: NoteField
   hotWaterTank300L: NoteField
   hotWaterTank300LEasy: NoteField
+  hotWaterTankCoil: NoteField
   existingDrainDiameter: NoteField
   floorHeatingBG: NoteField
   floorHeating1st: NoteField
@@ -110,20 +113,19 @@ function buildACPrompt(payload: OffertePayload): string {
   const o = payload.options
   const nv = (f?: NoteField) => `${f?.value ?? ""}\n${f?.note ?? ""}`
 
-  const opties = [
-    ["1", "1"], ["1", "2"], ["1", "3"],
-    ["2", "1"], ["2", "2"], ["2", "3"],
-    ["3", "1"], ["3", "2"], ["3", "3"],
-  ]
-
   let optiesTekst = ""
-  for (const [g, s] of opties) {
-    const opt = o?.[g]?.[s] as ACSubOption | undefined
+  for (const g of ["1", "2", "3"]) {
+    const group = o?.[g]
+    if (!group) continue
+    for (const s of Object.keys(group)) {
+    const opt = group[s] as ACSubOption | undefined
     if (!opt) continue
     optiesTekst += `
 optie ${g}.${s} ${opt.enabled}
 Locatie Airco
 ${nv(opt.location)}
+Plaats binnendeel
+${nv(opt.indoorUnitPlace)}
 Kleur
 ${nv(opt.color)}
 Daikin Airco Type
@@ -132,6 +134,8 @@ Type buitendeel
 ${nv(opt.outdoorType)}
 Plaats buitendeel
 ${nv(opt.outdoorPlace)}
+Leidingroute
+${nv(opt.pipeRoute)}
 Type Airco
 ${nv(opt.acType)}
 Droge Diamantboring
@@ -152,9 +156,8 @@ Afvoer
 ${nv(opt.drain)}
 Hoekpompje
 ${nv(opt.cornerPump)}
-Lastig
-${nv(opt.hardToReach)}
 `
+    }
   }
 
   const gutterColor = o?.["1"]?.["1"]?.gutterColor?.value ?? ""
@@ -272,6 +275,8 @@ Tapwatertank (300 L / Geïntegreerd)
 ${nv(opt.hotWaterTank300L)}
 300 L taptank makkelijk naar locatie?
 ${nv(opt.hotWaterTank300LEasy)}
+Tapwatertank boiler (spiraal)
+${nv(opt.hotWaterTankCoil)}
 Bestaande afvoer diameter (mm)
 ${nv(opt.existingDrainDiameter)}
 Vloerverwarming Begane grond
@@ -306,10 +311,6 @@ ${nv(opt.powerSupply)}
 ${nv(opt.voltage380Present)}
 Meetrapport energie noodzakelijk
 ${nv(opt.energyReportRequired)}
-Lastig?
-${nv(opt.difficult)}
-Oudere woning
-${nv(opt.olderHome)}
 `
   }
 

@@ -10,10 +10,12 @@ type NoteField = { value: string; note: string }
 type ACSubOption = {
   enabled: boolean
   location: NoteField
+  indoorUnitPlace: NoteField
   color: NoteField
   daikinType: NoteField
   outdoorType: NoteField
   outdoorPlace: NoteField
+  pipeRoute: NoteField
   acType: NoteField
   dryCoreDrilling: NoteField
   concrete: NoteField
@@ -53,6 +55,7 @@ type HPSubOption = {
   numberOfPeople: NoteField
   hotWaterTank300L: NoteField
   hotWaterTank300LEasy: NoteField
+  hotWaterTankCoil: NoteField
   existingDrainDiameter: NoteField
   floorHeatingBG: NoteField
   floorHeating1st: NoteField
@@ -75,16 +78,18 @@ type HPSubOption = {
   remarks: string
 }
 
-type ACOptions = { [k: string]: { [k: string]: ACSubOption } }
+type ACOptions = Record<"1" | "2" | "3", Record<string, ACSubOption>>
 type HPOptions = { [k: string]: HPSubOption }
 
 const blankACSub = (isDefault = false): ACSubOption => ({
   enabled: isDefault,
   location: { value: "", note: "" },
+  indoorUnitPlace: { value: "", note: "" },
   color: { value: "", note: "" },
   daikinType: { value: "", note: "" },
   outdoorType: { value: "", note: "" },
   outdoorPlace: { value: "", note: "" },
+  pipeRoute: { value: "", note: "" },
   acType: { value: "", note: "" },
   dryCoreDrilling: { value: "", note: "" },
   concrete: { value: "", note: "" },
@@ -124,6 +129,7 @@ const blankHPSub = (): HPSubOption => ({
   numberOfPeople: { value: "", note: "" },
   hotWaterTank300L: { value: "", note: "" },
   hotWaterTank300LEasy: { value: "", note: "" },
+  hotWaterTankCoil: { value: "", note: "" },
   existingDrainDiameter: { value: "", note: "" },
   floorHeatingBG: { value: "", note: "" },
   floorHeating1st: { value: "", note: "" },
@@ -148,10 +154,12 @@ const blankHPSub = (): HPSubOption => ({
 
 const acFieldOptions: { [key: string]: string[] } = {
   location: ["Slaapkamer", "Woonkamer", "Zolder", "Anders"],
+  indoorUnitPlace: [],
   color: ["Zwart", "Wit", "Zilver", "Anders"],
   daikinType: ["FTXF", "FTXP", "FTXM", "FVXM", "FTXA", "FTXJ"],
-  outdoorType: ["RXM", "RXF", "RXJ", "RXP", "RXA", "2MXM68", "3MXM68"],
+  outdoorType: ["RXM", "RXF", "RXJ", "RXP", "RXA", "2MXM68", "3MXM68", "4MXM80"],
   outdoorPlace: ["Voorgevel", "Voortuin", "Achtergevel", "Dak", "Zijmuur"],
+  pipeRoute: ["Onder dakbeschot", "Langs dakbeschot", "Binnenlangs", "Buitenlangs", "Anders"],
   acType: ["Split", "MS1", "MS2", "MS3", "MS4", "MS5"],
   dryCoreDrilling: ["Ja", "Nee"],
   concrete: ["Ja", "Nee"],
@@ -190,6 +198,7 @@ const hpFieldOptions: { [key: string]: string[] } = {
   numberOfPeople: ["1", "2", "3", "4", "5+"],
   hotWaterTank300L: ["Ja", "Nee", "Geïntegreerd All-in-One 230 L"],
   hotWaterTank300LEasy: ["Ja", "Nee"],
+  hotWaterTankCoil: ["Met spiraal", "Zonder spiraal", "Niet van toepassing"],
   existingDrainDiameter: ["32", "40", "50"],
   floorHeatingBG: ["Ja", "Nee"],
   floorHeating1st: ["Ja", "Nee"],
@@ -212,7 +221,7 @@ const hpFieldOptions: { [key: string]: string[] } = {
 type ACFieldProps = {
   label: string
   i: "1" | "2" | "3"
-  j: "1" | "2" | "3"
+  j: string
   k: keyof ACSubOption
   currentValue: string
   currentNote: string
@@ -369,9 +378,9 @@ export default function Page() {
   })
 
   const [acOptions, setAcOptions] = useState<ACOptions>({
-    "1": { "1": blankACSub(true), "2": blankACSub(false), "3": blankACSub(false) },
-    "2": { "1": blankACSub(false), "2": blankACSub(false), "3": blankACSub(false) },
-    "3": { "1": blankACSub(false), "2": blankACSub(false), "3": blankACSub(false) },
+    "1": { "1": blankACSub(true) },
+    "2": { "1": blankACSub(false) },
+    "3": { "1": blankACSub(false) },
   })
 
   const [hpOptions, setHpOptions] = useState<HPOptions>({
@@ -429,7 +438,7 @@ export default function Page() {
     return null
   }
 
-  const toggleACEnabled = (i: "1" | "2" | "3", j: "1" | "2" | "3") => {
+  const toggleACEnabled = (i: "1" | "2" | "3", j: string) => {
     setAcOptions((prev) => ({
       ...prev,
       [i]: {
@@ -442,6 +451,32 @@ export default function Page() {
     }))
   }
 
+  const addACSubOption = (i: "1" | "2" | "3") => {
+    setAcOptions((prev) => {
+      const keys = Object.keys(prev[i])
+      if (keys.length >= 6) return prev
+      const nextKey = String(keys.length + 1)
+      return {
+        ...prev,
+        [i]: {
+          ...prev[i],
+          [nextKey]: blankACSub(false),
+        },
+      }
+    })
+  }
+
+  const removeACSubOption = (i: "1" | "2" | "3", j: string) => {
+    setAcOptions((prev) => {
+      const entries = Object.values(prev[i]).filter((_, idx) => String(idx + 1) !== j)
+      const reumbered: Record<string, ACSubOption> = {}
+      entries.forEach((sub, idx) => {
+        reumbered[String(idx + 1)] = sub
+      })
+      return { ...prev, [i]: reumbered }
+    })
+  }
+
   const toggleHPEnabled = (optionKey: "1" | "2") => {
     setHpOptions((prev) => ({
       ...prev,
@@ -452,7 +487,7 @@ export default function Page() {
     }))
   }
 
-  const updateACFieldValue = (i: "1" | "2" | "3", j: "1" | "2" | "3", field: keyof ACSubOption, value: string) => {
+  const updateACFieldValue = (i: "1" | "2" | "3", j: string, field: keyof ACSubOption, value: string) => {
     setAcOptions((prev) => ({
       ...prev,
       [i]: {
@@ -465,7 +500,7 @@ export default function Page() {
     }))
   }
 
-  const updateACFieldNote = (i: "1" | "2" | "3", j: "1" | "2" | "3", field: keyof ACSubOption, note: string) => {
+  const updateACFieldNote = (i: "1" | "2" | "3", j: string, field: keyof ACSubOption, note: string) => {
     setAcOptions((prev) => ({
       ...prev,
       [i]: {
@@ -478,7 +513,7 @@ export default function Page() {
     }))
   }
 
-  const updateACRemarks = (i: "1" | "2" | "3", j: "1" | "2" | "3", remarks: string) => {
+  const updateACRemarks = (i: "1" | "2" | "3", j: string, remarks: string) => {
     setAcOptions((prev) => ({
       ...prev,
       [i]: {
@@ -720,7 +755,7 @@ export default function Page() {
           {(["1", "2", "3"] as const).map((i) => (
             <section key={i} className="card">
               <div className="sectionTitle">Optie {i}</div>
-              {(["1", "2", "3"] as const).map((j) => {
+              {Object.keys(acOptions[i]).map((j) => {
                 const subOption = acOptions[i][j]
 
                 return (
@@ -733,8 +768,26 @@ export default function Page() {
                         marginBottom: 16,
                       }}
                     >
-                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#60a5fa" }}>
+                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#60a5fa", display: "flex", alignItems: "center" }}>
                         Suboptie {i}.{j}
+                        {Object.keys(acOptions[i]).length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeACSubOption(i, j)}
+                            style={{
+                              marginLeft: "8px",
+                              padding: "2px 8px",
+                              fontSize: "12px",
+                              border: "1px solid #ef4444",
+                              borderRadius: "4px",
+                              background: "transparent",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Verwijderen
+                          </button>
+                        )}
                       </h3>
 
                       <div style={{ display: "flex", gap: 8 }}>
@@ -780,7 +833,7 @@ export default function Page() {
                     {subOption.enabled && (
                       <>
                         <ACField
-                          label="Locatie"
+                          label="Locatie Airco"
                           i={i}
                           j={j}
                           k="location"
@@ -788,6 +841,16 @@ export default function Page() {
                           currentNote={subOption.location.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "location", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "location", note)}
+                        />
+                        <ACField
+                          label="Plaats binnendeel"
+                          i={i}
+                          j={j}
+                          k="indoorUnitPlace"
+                          currentValue={subOption.indoorUnitPlace.value}
+                          currentNote={subOption.indoorUnitPlace.note}
+                          onValueChange={(value) => updateACFieldValue(i, j, "indoorUnitPlace", value)}
+                          onNoteChange={(note) => updateACFieldNote(i, j, "indoorUnitPlace", note)}
                         />
                         <ACField
                           label="Kleur"
@@ -828,6 +891,16 @@ export default function Page() {
                           currentNote={subOption.outdoorPlace.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "outdoorPlace", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "outdoorPlace", note)}
+                        />
+                        <ACField
+                          label="Leidingroute"
+                          i={i}
+                          j={j}
+                          k="pipeRoute"
+                          currentValue={subOption.pipeRoute.value}
+                          currentNote={subOption.pipeRoute.note}
+                          onValueChange={(value) => updateACFieldValue(i, j, "pipeRoute", value)}
+                          onNoteChange={(note) => updateACFieldNote(i, j, "pipeRoute", note)}
                         />
                         <ACField
                           label="Type Airco"
@@ -965,6 +1038,24 @@ export default function Page() {
                   </div>
                 )
               })}
+              {Object.keys(acOptions[i]).length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => addACSubOption(i)}
+                  style={{
+                    marginTop: "8px",
+                    padding: "6px 14px",
+                    fontSize: "13px",
+                    border: "1px dashed #3b82f6",
+                    borderRadius: "6px",
+                    background: "transparent",
+                    color: "#3b82f6",
+                    cursor: "pointer",
+                  }}
+                >
+                  + Sub-optie toevoegen
+                </button>
+              )}
             </section>
           ))}
         </>
@@ -1226,6 +1317,15 @@ export default function Page() {
                       currentNote={option.hotWaterTank300LEasy.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "hotWaterTank300LEasy", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "hotWaterTank300LEasy", note)}
+                    />
+                    <HPField
+                      label="Tapwatertank boiler"
+                      optionKey={optionKey}
+                      k="hotWaterTankCoil"
+                      currentValue={option.hotWaterTankCoil.value}
+                      currentNote={option.hotWaterTankCoil.note}
+                      onValueChange={(value) => updateHPFieldValue(optionKey, "hotWaterTankCoil", value)}
+                      onNoteChange={(note) => updateHPFieldNote(optionKey, "hotWaterTankCoil", note)}
                     />
                     <HPField
                       label="Bestaande afvoer diameter (mm)"
