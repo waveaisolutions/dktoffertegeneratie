@@ -875,6 +875,7 @@ export default function Page() {
                           currentNote={subOption.color.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "color", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "color", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Daikin Airco Type"
@@ -885,6 +886,7 @@ export default function Page() {
                           currentNote={subOption.daikinType.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "daikinType", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "daikinType", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Type buitendeel"
@@ -895,6 +897,7 @@ export default function Page() {
                           currentNote={subOption.outdoorType.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "outdoorType", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "outdoorType", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Plaats buitendeel"
@@ -927,6 +930,7 @@ export default function Page() {
                           currentNote={subOption.acType.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "acType", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "acType", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Droge Diamantboring"
@@ -957,6 +961,7 @@ export default function Page() {
                           currentNote={subOption.gutterColor.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "gutterColor", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "gutterColor", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Toegang"
@@ -988,6 +993,7 @@ export default function Page() {
                           currentNote={subOption.roofer.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "roofer", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "roofer", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Muursteunen"
@@ -1008,6 +1014,7 @@ export default function Page() {
                           currentNote={subOption.power.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "power", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "power", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Afvoer"
@@ -1018,6 +1025,7 @@ export default function Page() {
                           currentNote={subOption.drain.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "drain", value)}
                           onNoteChange={(note) => updateACFieldNote(i, j, "drain", note)}
+                          multiSelect={true}
                         />
                         <ACField
                           label="Hoekpompje"
@@ -1150,6 +1158,7 @@ export default function Page() {
                       currentNote={option.panasonicOptions.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "panasonicOptions", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "panasonicOptions", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Daikin-opties"
@@ -1159,6 +1168,7 @@ export default function Page() {
                       currentNote={option.daikinOptions.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "daikinOptions", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "daikinOptions", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Rookgasafvoer vervangen"
@@ -1186,6 +1196,7 @@ export default function Page() {
                       currentNote={option.roofPassThrough.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "roofPassThrough", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "roofPassThrough", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Toegankelijkheid dakdoorvoer"
@@ -1195,6 +1206,7 @@ export default function Page() {
                       currentNote={option.roofAccessibility.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "roofAccessibility", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "roofAccessibility", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Huidig gasverbruik"
@@ -1224,6 +1236,7 @@ export default function Page() {
                       currentNote={option.indoorUnitLocation.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "indoorUnitLocation", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "indoorUnitLocation", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Plaats binnendeel"
@@ -1243,6 +1256,7 @@ export default function Page() {
                       currentNote={option.coolingPipeColorGutter.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "coolingPipeColorGutter", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "coolingPipeColorGutter", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Meter koelleiding"
@@ -1262,6 +1276,7 @@ export default function Page() {
                       currentNote={option.trace.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "trace", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "trace", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Door aantal ruimtes"
@@ -1271,6 +1286,7 @@ export default function Page() {
                       currentNote={option.throughRooms.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "throughRooms", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "throughRooms", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Huidige cv-leiding diameter (mm)"
@@ -1280,6 +1296,7 @@ export default function Page() {
                       currentNote={option.currentCvPipeDiameter.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "currentCvPipeDiameter", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "currentCvPipeDiameter", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Huidige waterleiding diameter (mm)"
@@ -1289,6 +1306,7 @@ export default function Page() {
                       currentNote={option.currentWaterPipeDiameter.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "currentWaterPipeDiameter", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "currentWaterPipeDiameter", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Bad aanwezig"
@@ -1316,6 +1334,7 @@ export default function Page() {
                       currentNote={option.numberOfPeople.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "numberOfPeople", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "numberOfPeople", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Tapwatertank (300 L / Geïntegreerd)"
@@ -1325,6 +1344,7 @@ export default function Page() {
                       currentNote={option.hotWaterTank300L.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "hotWaterTank300L", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "hotWaterTank300L", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="300 L taptank makkelijk naar locatie?"
@@ -1343,6 +1363,7 @@ export default function Page() {
                       currentNote={option.hotWaterTankCoil.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "hotWaterTankCoil", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "hotWaterTankCoil", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Bestaande afvoer diameter (mm)"
@@ -1352,6 +1373,7 @@ export default function Page() {
                       currentNote={option.existingDrainDiameter.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "existingDrainDiameter", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "existingDrainDiameter", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Vloerverwarming Begane grond"
@@ -1389,6 +1411,7 @@ export default function Page() {
                       currentNote={option.bufferTank.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "bufferTank", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "bufferTank", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Externe circulatiepomp aanwezig"
@@ -1425,6 +1448,7 @@ export default function Page() {
                       currentNote={option.outdoorUnitPlace.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "outdoorUnitPlace", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "outdoorUnitPlace", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Droge diamantboring"
@@ -1461,6 +1485,7 @@ export default function Page() {
                       currentNote={option.verticalTransport.note}
                       onValueChange={(value) => updateHPFieldValue(optionKey, "verticalTransport", value)}
                       onNoteChange={(note) => updateHPFieldNote(optionKey, "verticalTransport", note)}
+                      multiSelect={true}
                     />
                     <HPField
                       label="Voeding (spec.)"
