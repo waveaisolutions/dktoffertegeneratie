@@ -227,6 +227,7 @@ type ACFieldProps = {
   currentNote: string
   onValueChange: (value: string) => void
   onNoteChange: (note: string) => void
+  multiSelect?: boolean
 }
 
 type HPFieldProps = {
@@ -241,8 +242,17 @@ type HPFieldProps = {
   multiSelect?: boolean
 }
 
-function ACField({ label, k, currentValue, currentNote, onValueChange, onNoteChange }: ACFieldProps) {
+function ACField({ label, k, currentValue, currentNote, onValueChange, onNoteChange, multiSelect }: ACFieldProps) {
   const opts = acFieldOptions[k as string] || []
+  const selectedValues = multiSelect && currentValue ? currentValue.split(", ").filter(Boolean) : []
+
+  const handleMultiToggle = (opt: string) => {
+    if (selectedValues.includes(opt)) {
+      onValueChange(selectedValues.filter((v) => v !== opt).join(", "))
+    } else {
+      onValueChange([...selectedValues, opt].join(", "))
+    }
+  }
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -250,27 +260,30 @@ function ACField({ label, k, currentValue, currentNote, onValueChange, onNoteCha
         {label}
       </label>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-        {opts.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => onValueChange(currentValue === opt ? "" : opt)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: currentValue === opt ? "2px solid #0066cc" : "2px solid #ddd",
-              background: currentValue === opt ? "#e6f2ff" : "#fff",
-              color: currentValue === opt ? "#0066cc" : "#333",
-              cursor: "pointer",
-              fontFamily: "Calibri, sans-serif",
-              fontSize: 14,
-              fontWeight: currentValue === opt ? 600 : 400,
-              transition: "all 0.2s",
-            }}
-          >
-            {opt}
-          </button>
-        ))}
+        {opts.map((opt) => {
+          const isSelected = multiSelect ? selectedValues.includes(opt) : currentValue === opt
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => multiSelect ? handleMultiToggle(opt) : onValueChange(currentValue === opt ? "" : opt)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 8,
+                border: isSelected ? "2px solid #0066cc" : "2px solid #ddd",
+                background: isSelected ? "#e6f2ff" : "#fff",
+                color: isSelected ? "#0066cc" : "#333",
+                cursor: "pointer",
+                fontFamily: "Calibri, sans-serif",
+                fontSize: 14,
+                fontWeight: isSelected ? 600 : 400,
+                transition: "all 0.2s",
+              }}
+            >
+              {opt}
+            </button>
+          )
+        })}
       </div>
       <input
         className="note"
@@ -840,6 +853,7 @@ export default function Page() {
                           currentValue={subOption.location.value}
                           currentNote={subOption.location.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "location", value)}
+                          multiSelect={true}
                           onNoteChange={(note) => updateACFieldNote(i, j, "location", note)}
                         />
                         <ACField
@@ -890,6 +904,7 @@ export default function Page() {
                           currentValue={subOption.outdoorPlace.value}
                           currentNote={subOption.outdoorPlace.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "outdoorPlace", value)}
+                          multiSelect={true}
                           onNoteChange={(note) => updateACFieldNote(i, j, "outdoorPlace", note)}
                         />
                         <ACField
@@ -900,6 +915,7 @@ export default function Page() {
                           currentValue={subOption.pipeRoute.value}
                           currentNote={subOption.pipeRoute.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "pipeRoute", value)}
+                          multiSelect={true}
                           onNoteChange={(note) => updateACFieldNote(i, j, "pipeRoute", note)}
                         />
                         <ACField
@@ -950,6 +966,7 @@ export default function Page() {
                           currentValue={subOption.access.value}
                           currentNote={subOption.access.note}
                           onValueChange={(value) => updateACFieldValue(i, j, "access", value)}
+                          multiSelect={true}
                           onNoteChange={(note) => updateACFieldNote(i, j, "access", note)}
                         />
                         <ACField
