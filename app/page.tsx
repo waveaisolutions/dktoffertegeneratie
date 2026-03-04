@@ -306,10 +306,8 @@ function HPField({
   multiSelect,
 }: HPFieldProps) {
   const opts = hpFieldOptions[k as string] || []
-  const [customInput, setCustomInput] = useState("")
 
   const selectedValues = currentValue ? currentValue.split(", ").filter(Boolean) : []
-  const customValues = selectedValues.filter((v) => !opts.includes(v))
 
   const handleToggle = (opt: string) => {
     if (multiSelect) {
@@ -321,19 +319,6 @@ function HPField({
     } else {
       onValueChange(currentValue === opt ? "" : opt)
     }
-  }
-
-  const addCustomValue = () => {
-    const trimmed = customInput.trim()
-    if (!trimmed) return
-    if (!selectedValues.includes(trimmed)) {
-      onValueChange([...selectedValues, trimmed].join(", "))
-    }
-    setCustomInput("")
-  }
-
-  const removeCustomValue = (val: string) => {
-    onValueChange(selectedValues.filter((v) => v !== val).join(", "))
   }
 
   return (
@@ -375,45 +360,8 @@ function HPField({
               </button>
             )
           })}
-          {customValues.map((val) => (
-            <span
-              key={val}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 12px", borderRadius: 8,
-                border: "2px solid #0066cc", background: "#e6f2ff",
-                color: "#0066cc", fontSize: 14, fontWeight: 600,
-              }}
-            >
-              {val}
-              <button
-                type="button"
-                onClick={() => removeCustomValue(val)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#0066cc", fontSize: 16, lineHeight: 1, padding: 0 }}
-              >×</button>
-            </span>
-          ))}
         </div>
       )}
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input
-          className="note"
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomValue())}
-          placeholder="Eigen toevoeging..."
-          style={{ flex: 1 }}
-        />
-        <button
-          type="button"
-          onClick={addCustomValue}
-          style={{
-            padding: "6px 14px", borderRadius: 8, border: "2px solid #0066cc",
-            background: "#0066cc", color: "#fff", cursor: "pointer",
-            fontFamily: "Calibri, sans-serif", fontSize: 14, fontWeight: 600,
-          }}
-        >+</button>
-      </div>
       <input
         className="note"
         value={currentNote}
