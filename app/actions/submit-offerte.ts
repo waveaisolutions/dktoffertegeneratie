@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { generateOfferteText, generateOfferteDoc } from "@/lib/generate-offerte"
 
 interface OffertePayload {
   systemType: string
@@ -32,53 +33,34 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email)
 }
 
-function isValidPhone(phone: string): boolean {
-  const cleaned = phone.replace(/[\s-]/g, "")
-  return cleaned.length >= 10 && cleaned.length <= 15
-}
-
-function isValidPostcode(postcode: string): boolean {
-  const cleaned = postcode.replace(/\s/g, "").toUpperCase()
-  return cleaned.length >= 6 && cleaned.length <= 7
-}
-
 export async function submitOfferte(payload: OffertePayload) {
   try {
-    console.log("[v0] Server: Submit offerte called")
     const supabase = await createClient()
 
-    console.log("[v0] Server: Checking authentication")
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      console.log("[v0] Server: Auth error:", authError)
       return {
         success: false,
         error: "Je moet ingelogd zijn om een offerte te versturen",
       }
     }
 
-    console.log("[v0] Server: User authenticated:", user.email)
-
     const email = user.email || ""
     const domain = email.split("@")[1]
     const allowedDomains = ["waveaisolutions.nl", "dongemondklimaattechniek.nl"]
 
     if (!allowedDomains.includes(domain)) {
-      console.log("[v0] Server: Domain not allowed:", domain)
       return {
         success: false,
         error: "Je account heeft geen toegang tot deze functie",
       }
     }
 
-    console.log("[v0] Server: Validating customer data")
-
     if (!payload.customer.email || !isValidEmail(payload.customer.email)) {
-      console.log("[v0] Server: Invalid customer email:", payload.customer.email)
       return {
         success: false,
         error: "Vul een geldig email adres in voor de klant",
@@ -86,7 +68,6 @@ export async function submitOfferte(payload: OffertePayload) {
     }
 
     if (!payload.customer.phone) {
-      console.log("[v0] Server: Missing phone")
       return {
         success: false,
         error: "Vul een telefoonnummer in voor de klant",
@@ -94,14 +75,12 @@ export async function submitOfferte(payload: OffertePayload) {
     }
 
     if (!payload.customer.postcode) {
-      console.log("[v0] Server: Missing postcode")
       return {
         success: false,
         error: "Vul een postcode in voor de klant",
       }
     }
 
-    console.log("[v0] Server: Sanitizing payload")
     const sanitizedPayload = {
       systemType: sanitizeString(payload.systemType),
       customer: {
@@ -122,49 +101,52 @@ export async function submitOfferte(payload: OffertePayload) {
     const webhookUrl = process.env.N8N_WEBHOOK_URL
 
     if (!webhookUrl) {
-      console.log("[v0] Server: Webhook URL not configured")
       return {
         success: false,
         error: "N8N webhook is niet geconfigureerd. Voeg N8N_WEBHOOK_URL toe aan environment variables.",
       }
     }
 
-    console.log("[v0] Server: Full webhook URL:", webhookUrl)
-    console.log("[v0] Server: Webhook URL length:", webhookUrl.length)
+    // Genereer AI-tekst
+    const aiOutput = await generateOfferteText(sanitizedPayload)
 
-    console.log("[v0] Server: Sending to webhook...")
+    // Genereer .docx bestand
+    const docBuffer = await generateOfferteDoc(sanitizedPayload, aiOutput)
 
+    // Bestandsnaam op basis van offertenummer
+    const offerteNummer = sanitizedPayload.customer.quotationNumber || Date.now().toString()
+    const filename = `Offerte-DKT-${offerteNummer}.docx`
+
+    // Stuur alleen het bestand + metadata naar n8n
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        ...sanitizedPayload,
+        systemType: sanitizedPayload.systemType,
+        filename,
+        fileBase64: docBuffer.toString("base64"),
+        customerEmail: sanitizedPayload.customer.email,
         submittedBy: email,
         submittedAt: new Date().toISOString(),
       }),
     })
 
-    console.log("[v0] Server: Webhook response status:", response.status)
-
     if (!response.ok) {
       const errorText = await response.text()
-      console.log("[v0] Server: Webhook failed:", errorText)
       return {
         success: false,
         error: `Webhook error (${response.status}): ${errorText.substring(0, 100)}`,
       }
     }
 
-    console.log("[v0] Server: Webhook success!")
-
     return {
       success: true,
-      message: "Offerte succesvol verzonden!",
+      message: "Offerte succesvol gegenereerd en verzonden!",
     }
   } catch (error) {
-    console.error("[v0] Server: Error in submitOfferte:", error)
+    console.error("[DKT] Error in submitOfferte:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Er is een onbekende fout opgetreden",
