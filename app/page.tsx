@@ -374,6 +374,7 @@ export default function Page() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
 
   // This state should be declared at the top level of the component
   const [systemType, setSystemType] = useState<"Airconditioning" | "Warmtepomp">("Airconditioning")
@@ -574,29 +575,25 @@ export default function Page() {
   }
 
   const save = async () => {
-    console.log("[v0] Starting form submission")
+    setIsSending(true)
     const payload = {
       systemType,
       customer,
       options: systemType === "Airconditioning" ? acOptions : hpOptions,
     }
 
-    console.log("[v0] Payload:", JSON.stringify(payload, null, 2))
-
     try {
-      console.log("[v0] Calling submitOfferte")
       const result = await submitOfferte(payload)
-      console.log("[v0] Result:", result)
 
       if (result.success) {
         alert(result.message || "Offerte succesvol verzonden!")
       } else {
-        console.error("[v0] Submission failed:", result.error)
         alert(result.error || "Er is een fout opgetreden bij het verzenden.")
       }
     } catch (error) {
-      console.error("[v0] Submit error:", error)
       alert("Kan geen verbinding maken met de server.")
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -1552,9 +1549,17 @@ export default function Page() {
         </>
       )}
 
-      <button className="btn" onClick={save}>
-        Verzenden / Offerte genereren
+      <button className="btn" onClick={save} disabled={isSending} style={{ opacity: isSending ? 0.8 : 1, cursor: isSending ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
+        {isSending && (
+          <span style={{
+            width: 18, height: 18, border: "3px solid rgba(255,255,255,0.4)",
+            borderTop: "3px solid #fff", borderRadius: "50%",
+            display: "inline-block", animation: "spin 0.8s linear infinite",
+          }} />
+        )}
+        {isSending ? "Offerte wordt gegenereerd…" : "Verzenden / Offerte genereren"}
       </button>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </main>
   )
 }
