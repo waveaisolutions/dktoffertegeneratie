@@ -402,6 +402,48 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
   }
 }
 
+const FOOTER_TEXT =
+  "Dongemond Klimaattechniek B.V  |  Benedenkerkstraat 57, 5165 CA Waspik  |  " +
+  "Tel: 0162-750861  |  info@dongemondklimaattechniek.nl  |  " +
+  "KvK: 71245340  |  BtwNr: NL858635471B01  |  " +
+  "IBAN: NL07RABO0329224719  |  www.dongemondklimaattechniek.nl"
+
+function addDocxFooter(zip: PizZip): void {
+  const FOOTER_ID = "rIdDKTFooter"
+  const FOOTER_FILE = "footer_dkt.xml"
+
+  const footerXml =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+    `<w:p><w:pPr><w:jc w:val="center"/><w:rPr><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:pPr>` +
+    `<w:r><w:rPr><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr>` +
+    `<w:t xml:space="preserve">${FOOTER_TEXT}</w:t></w:r></w:p></w:ftr>`
+
+  zip.file(`word/${FOOTER_FILE}`, footerXml)
+
+  // Add relationship
+  const relsPath = "word/_rels/document.xml.rels"
+  let rels = zip.files[relsPath]?.asText() ?? ""
+  if (!rels.includes(FOOTER_ID)) {
+    const newRel =
+      `<Relationship Id="${FOOTER_ID}" ` +
+      `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" ` +
+      `Target="${FOOTER_FILE}"/>`
+    rels = rels.replace("</Relationships>", `${newRel}</Relationships>`)
+    zip.file(relsPath, rels)
+  }
+
+  // Update document.xml: replace all existing footer references with ours
+  const docPath = "word/document.xml"
+  let docXml = zip.files[docPath]?.asText() ?? ""
+  docXml = docXml.replace(/<w:footerReference\b[^>]*\/>/g, "")
+  docXml = docXml.replace(
+    /<\/w:sectPr>/g,
+    `<w:footerReference w:type="default" r:id="${FOOTER_ID}"/></w:sectPr>`
+  )
+  zip.file(docPath, docXml)
+}
+
 export async function generateOfferteDoc(
   payload: OffertePayload,
   ai: AiOfferteOutput
@@ -412,6 +454,8 @@ export async function generateOfferteDoc(
   const templateContent = fs.readFileSync(templatePath)
 
   const zip = new PizZip(templateContent)
+  addDocxFooter(zip)
+
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
