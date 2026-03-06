@@ -174,11 +174,18 @@ function buildACSpecification(payload: OffertePayload): string {
       // Leidingroute
       if (hasValue(opt.pipeRoute)) lines.push(`- De leidingen worden ${nv(opt.pipeRoute)} gevoerd`)
 
-      // Goot kleur pricing block - ALWAYS include
+      // Goot kleur pricing block - ALWAYS include; doorhaal niet-geselecteerde kleuren
+      const selectedColor = (opt.gutterColor?.value ?? "").toLowerCase()
+      const strike = (text: string) => text.split("").map(c => c + "\u0336").join("")
+      const colorLine = (label: string, key: string) => {
+        const isSelected = selectedColor.length > 0 && selectedColor.includes(key)
+        const isOther    = selectedColor.length > 0 && !isSelected
+        return isOther ? strike(`      ${label}`) : `      ${label}`
+      }
       lines.push(`- De leidingen in het gezichtsveld worden in witte kunststof Inoac/Inaba goot afgewerkt met bijbehorende hulpstukken. De leidinggoot voor buiten kunnen in de volgende kleuren aangebracht worden:`)
-      lines.push(`      Wit     merk: Inoac`)
-      lines.push(`      Crème   merk: Inoac meerprijs € 20,- incl btw.`)
-      lines.push(`      Zwart   merk: Inaba/inoac meerprijs € 50,- incl btw.`)
+      lines.push(colorLine("Wit     merk: Inoac", "wit"))
+      lines.push(colorLine("Crème   merk: Inoac meerprijs € 20,- incl btw.", "crème"))
+      lines.push(colorLine("Zwart   merk: Inaba/inoac meerprijs € 50,- incl btw.", "zwart"))
       lines.push(`  Graag op de laatste pagina aangeven welke kleur u wenst.`)
 
       // Drain
