@@ -191,39 +191,48 @@ function buildACSpecification(payload: OffertePayload): string {
       // Drain
       if (hasValue(opt.drain)) {
         if (opt.drain.value.toLowerCase().includes("vast")) {
-          const note = opt.drain.note ? ` (${opt.drain.note})` : ""
-          lines.push(`- Condenswaterafvoer: Het water wordt d.m.v. een vaste afvoer afgewaterd${note}`)
+          const note = opt.drain.note ? ` ${opt.drain.note}` : ""
+          lines.push(`- Het condenswater wordt d.m.v. een vaste afvoer afgewaterd.${note}`)
         } else if (opt.drain.value.toLowerCase().includes("pomp")) {
-          const note = opt.drain.note ? ` (${opt.drain.note})` : ""
-          lines.push(`- Condenswaterafvoer: Het water wordt d.m.v. een condenswaterhoekpomp afgepompt${note}`)
+          const note = opt.drain.note ? ` ${opt.drain.note}` : ""
+          lines.push(`- Het condenswater wordt d.m.v. een condenswaterhoekpomp afgepompt.${note}`)
         }
       }
 
       // Diamantboring
       if (opt.dryCoreDrilling?.value === "Ja") {
         const note = opt.dryCoreDrilling.note ? ` ${opt.dryCoreDrilling.note}` : ""
-        lines.push(`- Inclusief de benodigde droge Diamantboring(en) door de steense muren.${note}`)
+        lines.push(`- Inclusief de eventueel benodigde droge Diamantboring(en) door de steense muur.${note}`)
       }
       if (hasValue(opt.concrete) && opt.concrete.value === "Ja") {
-        lines.push(`- Beton aanwezig: betonboring vereist`)
+        lines.push(`- Er is beton aanwezig; hiervoor is een betonboring vereist.`)
       }
 
       // Dakdoorvoer
       if (opt.roofPassThrough?.value === "Ja") {
-        const roofer = hasValue(opt.roofer) ? ` – dakdekker: ${opt.roofer.value}` : ""
         const note = opt.roofPassThrough.note ? ` ${opt.roofPassThrough.note}` : ""
-        lines.push(`- Inclusief dakdoorvoer${roofer}${note}`)
+        if (hasValue(opt.roofer)) {
+          lines.push(`- Inclusief dakdoorvoer, uit te voeren door: ${opt.roofer.value}.${note}`)
+        } else {
+          lines.push(`- Inclusief dakdoorvoer.${note}`)
+        }
       }
 
       // Voeding
-      if (hasValue(opt.power)) lines.push(`- De voeding: ${nv(opt.power)}`)
+      if (hasValue(opt.power)) {
+        const powerNote = opt.power.note ? ` (${opt.power.note})` : ""
+        lines.push(`- De voeding: ${opt.power.value}${powerNote}.`)
+      }
 
       // Muursteunen
-      if (opt.wallBrackets?.value === "Ja") lines.push(`- Buitendeel: inclusief muursteunen voor bevestiging`)
+      if (opt.wallBrackets?.value === "Ja") {
+        const bracketNote = opt.wallBrackets.note ? ` ${opt.wallBrackets.note}` : ""
+        lines.push(`- Buitendeel: wordt op muursteunen aan de gevel gemonteerd.${bracketNote}`)
+      }
 
       // Toegang / klimmateriaal
       if (opt.access?.value && !opt.access.value.toLowerCase().includes("geen")) {
-        lines.push(`- Incl gebruik evt klim/hijsmateriaal`)
+        lines.push(`- Inclusief gebruik van klim- en/of hijsmateriaal.`)
       }
 
       // Standaard verbatim lijn
