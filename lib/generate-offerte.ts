@@ -3,6 +3,8 @@ import path from "path"
 import OpenAI from "openai"
 import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ImageModule = require("docxtemplater-image-module-free")
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -109,280 +111,296 @@ export interface AiOfferteOutput {
   specificatie: string
 }
 
-function buildACPrompt(payload: OffertePayload): string {
-  const o = payload.options
-  const nv = (f?: NoteField) => `${f?.value ?? ""}\n${f?.note ?? ""}`
+// Module-scope helpers used by both spec builders and prompt builders
+function nv(f?: NoteField): string {
+  if (!f) return ""
+  const parts = [f.value, f.note].filter(Boolean)
+  return parts.join(" – ")
+}
 
-  let optiesTekst = ""
+function hasValue(f?: NoteField): boolean {
+  return !!(f?.value)
+}
+
+function buildACSpecification(payload: OffertePayload): string {
+  const o = payload.options
+  const lines: string[] = []
+
   for (const g of ["1", "2", "3"]) {
     const group = o?.[g]
     if (!group) continue
     for (const s of Object.keys(group)) {
-    const opt = group[s] as ACSubOption | undefined
-    if (!opt) continue
-    optiesTekst += `
-optie ${g}.${s} ${opt.enabled}
-Locatie Airco
-${nv(opt.location)}
-Plaats binnendeel
-${nv(opt.indoorUnitPlace)}
-Kleur
-${nv(opt.color)}
-Daikin Airco Type
-${nv(opt.daikinType)}
-Type buitendeel
-${nv(opt.outdoorType)}
-Plaats buitendeel
-${nv(opt.outdoorPlace)}
-Leidingroute
-${nv(opt.pipeRoute)}
-Type Airco
-${nv(opt.acType)}
-Droge Diamantboring
-${nv(opt.dryCoreDrilling)}
-Beton
-${nv(opt.concrete)}
-Toegang
-${nv(opt.access)}
-Dakdoorvoer
-${nv(opt.roofPassThrough)}
-Dakdekker
-${nv(opt.roofer)}
-Muursteunen
-${nv(opt.wallBrackets)}
-Voeding
-${nv(opt.power)}
-Afvoer
-${nv(opt.drain)}
-Hoekpompje
-${nv(opt.cornerPump)}
-Opmerkingen
-${opt.remarks ?? ""}
-`
+      const opt = group[s] as ACSubOption | undefined
+      if (!opt || !opt.enabled) continue
+
+      // Skip options where all values are empty
+      const hasData = [opt.location, opt.indoorUnitPlace, opt.color, opt.daikinType,
+        opt.outdoorType, opt.outdoorPlace, opt.pipeRoute].some(hasValue)
+      if (!hasData) continue
+
+      // Option header
+      const headerParts = [opt.location?.value, opt.indoorUnitPlace?.value].filter(Boolean)
+      lines.push(`Optie ${g}.${s} – ${headerParts.join(" ")}:`)
+      lines.push("")
+
+      // Leveren en monteren
+      const leverenParts = [opt.daikinType?.value, opt.acType?.value, "binnendeel", opt.color?.value ? `kleur ${opt.color.value}` : ""].filter(Boolean)
+      if (leverenParts.length > 0) lines.push(`- Leveren en monteren van ${leverenParts.join(" ")}`)
+
+      // Plaats binnendeel
+      if (hasValue(opt.indoorUnitPlace)) lines.push(`- Plaats binnendeel: ${nv(opt.indoorUnitPlace)}`)
+
+      // Multi-split koppeling
+      const acTypeVal = opt.acType?.value ?? ""
+      if (acTypeVal.startsWith("MS") && parseInt(acTypeVal.replace("MS", "")) >= 2) {
+        // List all suboptions in this group that are enabled
+        const siblingKeys = Object.keys(group).filter(k => group[k]?.enabled)
+        if (siblingKeys.length > 1 && hasValue(opt.outdoorType)) {
+          const subNums = siblingKeys.map(k => `${g}.${k}`).join(", ")
+          lines.push(`- De binnendelen ${subNums} worden aangesloten op buitendeel ${opt.outdoorType.value}`)
+        }
+      }
+
+      // Buitendeel
+      if (hasValue(opt.outdoorType) || hasValue(opt.outdoorPlace)) {
+        const buitenParts = [opt.outdoorType?.value, opt.outdoorPlace?.value ? `geplaatst ${opt.outdoorPlace.value}` : ""].filter(Boolean)
+        let buitenLine = `- Buitendeel: ${buitenParts.join(" ")}`
+        if (opt.outdoorType?.note || opt.outdoorPlace?.note) {
+          buitenLine += ` – ${[opt.outdoorType?.note, opt.outdoorPlace?.note].filter(Boolean).join(", ")}`
+        }
+        lines.push(buitenLine)
+      }
+
+      // Leidingroute
+      if (hasValue(opt.pipeRoute)) lines.push(`- De leidingen worden ${nv(opt.pipeRoute)} gevoerd`)
+
+      // Goot kleur pricing block - ALWAYS include
+      lines.push(`- De leidingen in het gezichtsveld worden in witte kunststof Inoac/Inaba goot afgewerkt met bijbehorende hulpstukken. De leidinggoot voor buiten kunnen in de volgende kleuren aangebracht worden:`)
+      lines.push(`      Wit     merk: Inoac`)
+      lines.push(`      Crème   merk: Inoac meerprijs € 20,- incl btw.`)
+      lines.push(`      Zwart   merk: Inaba/inoac meerprijs € 50,- incl btw.`)
+      lines.push(`  Graag op de laatste pagina aangeven welke kleur u wenst.`)
+
+      // Drain
+      if (hasValue(opt.drain)) {
+        if (opt.drain.value.toLowerCase().includes("vast")) {
+          const note = opt.drain.note ? ` (${opt.drain.note})` : ""
+          lines.push(`- Condenswaterafvoer: Het water wordt d.m.v. een vaste afvoer afgewaterd${note}`)
+        } else if (opt.drain.value.toLowerCase().includes("pomp")) {
+          const note = opt.drain.note ? ` (${opt.drain.note})` : ""
+          lines.push(`- Condenswaterafvoer: Het water wordt d.m.v. een condenswaterhoekpomp afgepompt${note}`)
+        }
+      }
+
+      // Diamantboring
+      if (opt.dryCoreDrilling?.value === "Ja") {
+        const note = opt.dryCoreDrilling.note ? ` ${opt.dryCoreDrilling.note}` : ""
+        lines.push(`- Inclusief de benodigde droge Diamantboring(en) door de steense muren.${note}`)
+      }
+      if (hasValue(opt.concrete) && opt.concrete.value === "Ja") {
+        lines.push(`- Beton aanwezig: betonboring vereist`)
+      }
+
+      // Dakdoorvoer
+      if (opt.roofPassThrough?.value === "Ja") {
+        const roofer = hasValue(opt.roofer) ? ` – dakdekker: ${opt.roofer.value}` : ""
+        const note = opt.roofPassThrough.note ? ` ${opt.roofPassThrough.note}` : ""
+        lines.push(`- Inclusief dakdoorvoer${roofer}${note}`)
+      }
+
+      // Voeding
+      if (hasValue(opt.power)) lines.push(`- De voeding: ${nv(opt.power)}`)
+
+      // Muursteunen
+      if (opt.wallBrackets?.value === "Ja") lines.push(`- Buitendeel: inclusief muursteunen voor bevestiging`)
+
+      // Toegang / klimmateriaal
+      if (opt.access?.value && !opt.access.value.toLowerCase().includes("geen")) {
+        lines.push(`- Incl gebruik evt klim/hijsmateriaal`)
+      }
+
+      // Standaard verbatim lijn
+      lines.push(`- Installatie wordt geleverd inclusief alle benodigde koelleidingen en communicatiebekabeling.`)
+
+      // Remarks
+      if (opt.remarks?.trim()) lines.push(`  ${opt.remarks.trim()}`)
+
+      lines.push("")
+    }
+  }
+
+  // Verbatim closing lines
+  lines.push("De installatie wordt compleet geleverd en gemonteerd conform STEK / F-gassen verordening.")
+  lines.push("De airconditioning is voorzien van het nieuwe milieuvriendelijke R32 koudemiddel.")
+
+  return lines.join("\n")
+}
+
+function buildWPSpecification(payload: OffertePayload): string {
+  const o = payload.options
+  const lines: string[] = []
+
+  for (const idx of ["1", "2"]) {
+    const opt = o?.[idx] as HPSubOption | undefined
+    if (!opt || !opt.enabled) continue
+
+    const hasData = hasValue(opt.hpTypeModel) || hasValue(opt.panasonicOptions) || hasValue(opt.daikinOptions)
+    if (!hasData) continue
+
+    const modelVal = opt.hpTypeModel?.value || opt.panasonicOptions?.value || opt.daikinOptions?.value || `Optie ${idx}`
+    lines.push(`Optie ${idx} – ${modelVal}:`)
+    lines.push("")
+
+    // Leveren en monteren
+    const brandOpts = [opt.panasonicOptions?.value, opt.daikinOptions?.value].filter(Boolean).join(", ")
+    if (hasValue(opt.hpTypeModel)) lines.push(`- Leveren en monteren van ${nv(opt.hpTypeModel)} warmtepomp${brandOpts ? ` (${brandOpts})` : ""}`)
+    else if (brandOpts) lines.push(`- Leveren en monteren van warmtepomp: ${brandOpts}`)
+
+    // Locatie binnendeel
+    if (hasValue(opt.indoorUnitLocation) || hasValue(opt.indoorUnitPlace)) {
+      const loc = [opt.indoorUnitLocation?.value, opt.indoorUnitPlace?.value].filter(Boolean).join(" – ")
+      const note = [opt.indoorUnitLocation?.note, opt.indoorUnitPlace?.note].filter(Boolean).join(", ")
+      lines.push(`- Locatie binnendeel: ${loc}${note ? ` – ${note}` : ""}`)
+    }
+
+    // Plaats buitendeel
+    if (hasValue(opt.outdoorUnitPlace)) lines.push(`- Plaats buitendeel: ${nv(opt.outdoorUnitPlace)}`)
+
+    // Rookgasafvoer
+    if (opt.smokePipeReplacement?.value === "Ja") lines.push(`- Rookgasafvoer vervangen${opt.smokePipeReplacement.note ? `: ${opt.smokePipeReplacement.note}` : ""}`)
+
+    // Leidingverloop
+    const traceVal = hasValue(opt.trace) ? opt.trace.value : ""
+    const meters = hasValue(opt.meterCoolingPipe) ? `${opt.meterCoolingPipe.value} meter` : ""
+    const gootKleur = hasValue(opt.coolingPipeColorGutter) ? `${opt.coolingPipeColorGutter.value} goot` : ""
+    const traceParts = [traceVal, opt.trace?.note, meters, gootKleur].filter(Boolean)
+    if (traceParts.length) lines.push(`- Leidingverloop koeltechnisch: ${traceParts.join(", ")}`)
+
+    // Dakdoorvoer
+    if (opt.roofPassThrough?.value && !opt.roofPassThrough.value.toLowerCase().includes("niet van toepassing")) {
+      lines.push(`- Dakdoorvoer: ${nv(opt.roofPassThrough)}`)
+    }
+
+    // Diamantboringen
+    if (opt.dryDiamondDrilling?.value === "Ja") {
+      const count = hasValue(opt.dryDiamondDrillingCount) ? `${opt.dryDiamondDrillingCount.value}x ` : ""
+      lines.push(`- Inclusief ${count}droge diamantboring(en)`)
+    }
+
+    // Afgifte
+    const afgifteParts: string[] = []
+    if (opt.floorHeatingBG?.value === "Ja") afgifteParts.push("vloerverwarming begane grond")
+    if (opt.floorHeating1st?.value === "Ja") afgifteParts.push("vloerverwarming 1e verdieping")
+    if (hasValue(opt.radiators)) afgifteParts.push(`radiatoren: ${nv(opt.radiators)}`)
+    if (afgifteParts.length) lines.push(`- Afgifte: ${afgifteParts.join(", ")}`)
+
+    // Tapwatertank
+    if (opt.hotWaterTank?.value === "Ja" || hasValue(opt.hotWaterTank300L)) {
+      const tankParts = [opt.hotWaterTank300L?.value, opt.hotWaterTankCoil?.value, opt.hotWaterTank300L?.note].filter(Boolean)
+      lines.push(`- Tapwatertank: ${tankParts.join(", ") || "aanwezig"}`)
+    }
+
+    // Voeding
+    if (hasValue(opt.powerSupply)) lines.push(`- De voeding: ${nv(opt.powerSupply)}`)
+
+    // Muursteunen
+    if (opt.wallBrackets?.value === "Ja") lines.push(`- Inclusief muursteunen voor bevestiging buitendeel`)
+
+    // Verticaal transport
+    if (opt.verticalTransport?.value && !opt.verticalTransport.value.toLowerCase().includes("niet van toepassing")) {
+      lines.push(`- Incl gebruik klim/hijsmateriaal: ${nv(opt.verticalTransport)}`)
+    }
+
+    // Buffertank
+    if (hasValue(opt.bufferTank)) lines.push(`- Buffertank: ${nv(opt.bufferTank)}`)
+
+    // Remarks
+    if (opt.remarks?.trim()) lines.push(`  ${opt.remarks.trim()}`)
+
+    lines.push("")
+  }
+
+  return lines.join("\n")
+}
+
+function buildACMetaPrompt(payload: OffertePayload): string {
+  const o = payload.options
+  const locations: string[] = []
+  let firstAcType = ""
+
+  for (const g of ["1", "2", "3"]) {
+    const group = o?.[g]
+    if (!group) continue
+    for (const s of Object.keys(group)) {
+      const opt = group[s] as ACSubOption | undefined
+      if (!opt || !opt.enabled) continue
+      if (opt.location?.value) locations.push(opt.location.value)
+      if (!firstAcType && opt.acType?.value) firstAcType = opt.acType.value
     }
   }
 
   const gutterColor = o?.["1"]?.["1"]?.gutterColor?.value ?? ""
   const locatievariatie1 = o?.["1"]?.["1"]?.location?.value ?? ""
 
-  return `Je bent een zakelijke AI-tekstschrijver gespecialiseerd in offertes voor installatietechniek. Hou er dus rekening mee dat dit offertes zijn en er nog geen werkzaamheden zijn uitgevoerd.
-Je ontvangt gestructureerde input uit een formulier en genereert exact de onderstaande variabelen.
-Je output moet bestaan uit één ruw JSON-object.
-Gebruik geen string, geen array, geen tekst eromheen.
-Gebruik geen backslashes, geen quotes om het hele object, geen markdown.
+  return `Je bent een tekstschrijver voor technische offertes.
+Genereer op basis van de input een JSON-object met ALLEEN:
+- offertezin: een beknopte sectieheading (5-8 woorden) die de AC-configuratie beschrijft.
+  Noem specifieke ruimtes. Bijv: "Multisplit opstelling woonkamer en zolder" of "Split airco kantoorruimte 3e verdieping".
+  Geen "airco installatie" als prefix. Beschrijf WAT en WAAR.
+- aanhef: de aanhef exact zoals opgegeven
 
-Je genereert op basis van de input:
-offertezin → korte zakelijke samenvatting in één zin
-Specificatieinstallatie&uitgangspunten → technische beschrijving met opsomming
+Input: locaties = [${locations.join(", ")}], acType = [${firstAcType}]
 
-Richtlijnen outputvelden
-offertezin
-3-5 woorden
-beschrijft type installatie + ruimte
+Klant aanhef: "${payload.customer.salutation}"
 
-Specificatieinstallatie&uitgangspunten
-Begin elke optie op een NIEUWE REGEL met de header: "Optie X.X – [locatie]:" gevolgd door een lege regel.
-Schrijf daarna een volledige technische beschrijving van die optie (~100 woorden per optie).
-Sluit elke optie af met een LEGE REGEL zodat opties visueel van elkaar gescheiden zijn.
-Verwerk alle relevante informatie inhoudelijk, maar noem nooit de variabelen letterlijk.
-JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
-Noem gutterColor nooit in dit tekstveld.
-De tekst moet klinken als een normale technische werkomschrijving.
-Blijf feitelijk en concreet. Maak het geheel ongeveer 300 woorden in totaal.
-Gebruik de broncodes zoals 1.1 of 2.3 in de header van elke optie.
-NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
-Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
-
-${optiesTekst}
-
-Een optie mag alleen worden opgenomen wanneer minstens één van de value-velden niet leeg is.
-Opties waarvan álle value-velden leeg zijn moeten volledig genegeerd worden.
-Je mag GEEN opties genereren of invullen die niet daadwerkelijk waarden bevatten in de input.
-Je mag nooit opties invullen of bedenken voor varianten waar alle value-velden leeg zijn.
-Noem de gootkleur NIET in dit veld (gutterColor is apart veld).
-
-VERPLICHT OUTPUTFORMAT
-Geef uitsluitend het volgende JSON-object, correct gevuld:
+OUTPUT:
 {
   "offertedatum": "${payload.customer.quotationDate}",
   "offertenummer": "${payload.customer.quotationNumber}",
   "offertezin": "",
   "aanhef": "${payload.customer.salutation}",
   "locatievariatie1": "${locatievariatie1}",
-  "Specificatieinstallatie&uitgangspunten": "",
   "gutterColor": "${gutterColor}"
+}`
 }
 
-Belangrijk:
-Geen wrapper-array
-Geen extra velden
-Geen uitleg
-Geen markdown
-Geen escaping
-Geen backticks
-Alleen het JSON-object`
-}
-
-function buildWPPrompt(payload: OffertePayload): string {
+function buildWPMetaPrompt(payload: OffertePayload): string {
   const o = payload.options
+  const models: string[] = []
 
-  const nv = (f?: NoteField) => `${f?.value ?? ""}\n${f?.note ?? ""}`
-
-  const buildOptie = (idx: string) => {
+  for (const idx of ["1", "2"]) {
     const opt = o?.[idx] as HPSubOption | undefined
-    if (!opt) return ""
-    return `
-optie ${idx} ${opt.enabled}
-Type WP / merk + model
-${nv(opt.hpTypeModel)}
-Panasonic-opties
-${nv(opt.panasonicOptions)}
-Daikin-opties
-${nv(opt.daikinOptions)}
-Rookgasafvoer vervangen
-${nv(opt.smokePipeReplacement)}
-Tapwatertank
-${nv(opt.hotWaterTank)}
-Dakdoorvoer
-${nv(opt.roofAccessibility)}
-Toegankelijkheid dakdoorvoer
-${nv(opt.roofAccessibility)}
-Huidig gasverbruik
-${nv(opt.currentGasUsage)}
-Woonoppervlakte (m²)
-${nv(opt.livingArea)}
-Locatie binnendeel
-${nv(opt.indoorUnitLocation)}
-Plaats binnendeel
-${nv(opt.indoorUnitPlace)}
-Leidingverloop koeltechnisch – kleur goot
-${nv(opt.coolingPipeColorGutter)}
-Meter koelleiding
-${nv(opt.meterCoolingPipe)}
-Tracé
-${nv(opt.trace)}
-Door aantal ruimtes
-${nv(opt.throughRooms)}
-Huidige cv-leiding diameter (mm)
-${nv(opt.currentCvPipeDiameter)}
-Huidige waterleiding diameter (mm)
-${nv(opt.currentWaterPipeDiameter)}
-Bad aanwezig
-${nv(opt.bathPresent)}
-Stortdouche aanwezig
-${nv(opt.rainShowerPresent)}
-Aantal personen
-${nv(opt.numberOfPeople)}
-Tapwatertank (300 L / Geïntegreerd)
-${nv(opt.hotWaterTank300L)}
-300 L taptank makkelijk naar locatie?
-${nv(opt.hotWaterTank300LEasy)}
-Tapwatertank boiler (spiraal)
-${nv(opt.hotWaterTankCoil)}
-Bestaande afvoer diameter (mm)
-${nv(opt.existingDrainDiameter)}
-Vloerverwarming Begane grond
-${nv(opt.floorHeatingBG)}
-Vloerverwarming Eerste verdieping
-${nv(opt.floorHeating1st)}
-Radiatoren
-${nv(opt.radiators)}
-Buffertank
-${nv(opt.bufferTank)}
-Externe circulatiepomp aanwezig
-${nv(opt.externalCirculationPump)}
-Plaats bediening makkelijk bereikbaar?
-${nv(opt.controlAccessible)}
-Hergebruik bekabeling thermostaat
-${nv(opt.reuseThermostatCabling)}
-Plaats buitendeel
-${nv(opt.outdoorUnitPlace)}
-Droge diamantboring
-${nv(opt.dryDiamondDrilling)}
-Aantal diamantboringen
-${nv(opt.dryDiamondDrillingCount)}
-Dakdoorvoer / Muurdoorvoer
-${nv(opt.roofWallPassThrough)}
-Muursteunen
-${nv(opt.wallBrackets)}
-Verticaal transport
-${nv(opt.verticalTransport)}
-Voeding (spec.)
-${nv(opt.powerSupply)}
-380V aanwezig (Bij all electric vaak nodig!)
-${nv(opt.voltage380Present)}
-Meetrapport energie noodzakelijk
-${nv(opt.energyReportRequired)}
-Opmerkingen
-${opt.remarks ?? ""}
-`
+    if (!opt || !opt.enabled) continue
+    const modelVal = opt.hpTypeModel?.value || opt.panasonicOptions?.value || opt.daikinOptions?.value
+    if (modelVal) models.push(modelVal)
   }
 
   const gutterColor = o?.["1"]?.coolingPipeColorGutter?.value ?? ""
 
-  return `Je bent een zakelijke AI-tekstschrijver gespecialiseerd in offertes voor installatietechniek. Hou er dus rekening mee dat dit offertes zijn en er nog geen werkzaamheden zijn uitgevoerd.
-Je ontvangt gestructureerde input uit een formulier en genereert exact de onderstaande variabelen.
-Je output moet bestaan uit één ruw JSON-object.
-Gebruik geen string, geen array, geen tekst eromheen.
-Gebruik geen backslashes, geen quotes om het hele object, geen markdown.
+  return `Je bent een tekstschrijver voor technische offertes.
+Genereer op basis van de input een JSON-object met ALLEEN:
+- offertezin: een beknopte sectieheading (5-8 woorden) die de warmtepomp-configuratie beschrijft.
+  Noem specifieke modellen of kenmerken. Bijv: "Lucht-water warmtepomp Panasonic all-electric".
+  Geen "warmtepomp installatie" als prefix. Beschrijf WAT.
+- aanhef: de aanhef exact zoals opgegeven
 
-Je genereert op basis van de input:
-offertezin → korte zakelijke samenvatting in één zin
-Specificatieinstallatie&uitgangspuntenV2 → technische beschrijving met opsomming
+Input: modellen = [${models.join(", ")}]
 
-Richtlijnen outputvelden
-offertezin
-3-5 woorden
-beschrijft type installatie + ruimte
+Klant aanhef: "${payload.customer.salutation}"
 
-JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
-
-Specificatieinstallatie&uitgangspuntenV2
-Begin elke optie op een NIEUWE REGEL met de header: "Optie X – [type warmtepomp]:" gevolgd door een lege regel.
-Schrijf daarna een volledige technische beschrijving van die optie (~150 woorden per optie).
-Sluit elke optie af met een LEGE REGEL zodat opties visueel van elkaar gescheiden zijn.
-Verwerk alle relevante informatie inhoudelijk, maar noem nooit de variabelen letterlijk.
-JE MAG ALLEEN BENOEMEN WAT ER WEL GEDAAN GAAT WORDEN, BENOEM DUS NIET DE DINGEN DIE NIET GEDAAN GAAN WORDEN!
-Noem gutterColor nooit in dit tekstveld.
-De tekst moet klinken als een normale technische werkomschrijving.
-Blijf feitelijk en concreet. Maak het geheel ongeveer 300 woorden in totaal.
-Gebruik de broncodes zoals 1 en 2 in de header van elke optie.
-NOEM HET OPTIE EN NIET INSTALLATIE AANGEZIEN ER NOG GEEN WERKZAAMHEDEN VERRICHT ZIJN.
-Alleen ingeschakelde opties worden beschreven dus enabled = true; opties met enabled = false worden genegeerd.
-
-${buildOptie("1")}
-${buildOptie("2")}
-
-Een optie mag alleen worden opgenomen wanneer minstens één van de value-velden niet leeg is.
-Opties waarvan álle value-velden leeg zijn moeten volledig genegeerd worden.
-Je mag GEEN opties genereren of invullen die niet daadwerkelijk waarden bevatten in de input.
-Je mag nooit opties invullen of bedenken voor varianten waar alle value-velden leeg zijn.
-Noem de gootkleur NIET in dit veld (gutterColor is apart veld).
-
-VERPLICHT OUTPUTFORMAT
-Geef uitsluitend het volgende JSON-object, correct gevuld:
+OUTPUT:
 {
   "offertedatum": "${payload.customer.quotationDate}",
   "offertenummer": "${payload.customer.quotationNumber}",
   "offertezin": "",
   "aanhef": "${payload.customer.salutation}",
-  "Specificatieinstallatie&uitgangspuntenV2": "",
   "gutterColor": "${gutterColor}"
-}
-
-Belangrijk:
-Geen wrapper-array
-Geen extra velden
-Geen uitleg
-Geen markdown
-Geen escaping
-Geen backticks
-Alleen het JSON-object`
+}`
 }
 
 export async function generateOfferteText(payload: OffertePayload): Promise<AiOfferteOutput> {
   const isAC = payload.systemType === "Airconditioning"
-  const prompt = isAC ? buildACPrompt(payload) : buildWPPrompt(payload)
+  const prompt = isAC ? buildACMetaPrompt(payload) : buildWPMetaPrompt(payload)
 
   const response = await openai.chat.completions.create({
     model: "gpt-4.1-mini",
@@ -400,12 +418,38 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
     aanhef: parsed.aanhef ?? payload.customer.salutation,
     gutterColor: parsed.gutterColor ?? "",
     locatievariatie1: parsed.locatievariatie1,
-    specificatie: isAC
-      ? (parsed["Specificatieinstallatie&uitgangspunten"] ?? "")
-      : (parsed["Specificatieinstallatie&uitgangspuntenV2"] ?? ""),
+    specificatie: isAC ? buildACSpecification(payload) : buildWPSpecification(payload),
   }
 }
 
+
+function getOfferteImageBuffer(payload: OffertePayload): Buffer | null {
+  if (payload.systemType !== "Airconditioning") return null
+
+  const options = (payload.options?.subOptions ?? []) as ACSubOption[]
+  const firstEnabled = options.find((o) => o.enabled)
+  if (!firstEnabled) return null
+
+  const daikinType = (firstEnabled.daikinType?.value ?? "").toUpperCase()
+
+  let imageName: string
+  if (daikinType.startsWith("FTXA")) {
+    imageName = "wandmodel-ftxa.png"
+  } else if (daikinType.startsWith("FTXP")) {
+    imageName = "wandmodel-ftxp.png"
+  } else if (daikinType.startsWith("FVXM")) {
+    imageName = "vloermodel-fvxm.png"
+  } else if (daikinType.startsWith("FCAG") || daikinType.startsWith("BYCQ")) {
+    imageName = "cassette-bycq.png"
+  } else {
+    // FTXM, FTXF, FTXJ, MS-types, default
+    imageName = "wandmodel-ftxm.jpeg"
+  }
+
+  const imgPath = path.join(process.cwd(), "templates", "images", imageName)
+  if (!fs.existsSync(imgPath)) return null
+  return fs.readFileSync(imgPath)
+}
 
 export async function generateOfferteDoc(
   payload: OffertePayload,
@@ -417,9 +461,27 @@ export async function generateOfferteDoc(
   const templateContent = fs.readFileSync(templatePath)
 
   const zip = new PizZip(templateContent)
+
+  const klantadres = payload.customer.address ?? ""
+  const klantpostcodeplaats = `${payload.customer.postcode ?? ""}  ${payload.customer.city ?? ""}`.trim()
+
+  const imageBuffer = isAC ? getOfferteImageBuffer(payload) : null
+  const modules: object[] = []
+
+  if (imageBuffer) {
+    modules.push(
+      new ImageModule({
+        centered: true,
+        getImage: (buf: Buffer) => buf,
+        getSize: () => [400, 300] as [number, number],
+      })
+    )
+  }
+
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
+    modules,
   })
 
   const data = isAC
@@ -430,7 +492,10 @@ export async function generateOfferteDoc(
         aanhef: ai.aanhef,
         gutterColor: ai.gutterColor,
         locatievariatie1: ai.locatievariatie1 ?? "",
+        klantadres,
+        klantpostcodeplaats,
         "Specificatieinstallatie&uitgangspunten": ai.specificatie,
+        ...(imageBuffer ? { offerteImage: imageBuffer } : {}),
       }
     : {
         offertedatum: ai.offertedatum,
@@ -438,6 +503,8 @@ export async function generateOfferteDoc(
         offertezin: ai.offertezin,
         aanhef: ai.aanhef,
         kleurbuitengoot: ai.gutterColor,
+        klantadres,
+        klantpostcodeplaats,
         "Specificatieinstallatie&uitgangspuntenV2": ai.specificatie,
       }
 
