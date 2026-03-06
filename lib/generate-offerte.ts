@@ -431,19 +431,42 @@ function getOfferteImagePath(payload: OffertePayload): string | null {
   if (!firstEnabled) return null
 
   const daikinType = (firstEnabled.daikinType?.value ?? "").toUpperCase()
+  const acType = (firstEnabled.acType?.value ?? "").toUpperCase()
+  const color = (firstEnabled.color?.value ?? "").toLowerCase()
+  const outdoorType = (firstEnabled.outdoorType?.value ?? "").toLowerCase()
 
   let imageName: string
-  if (daikinType.startsWith("FTXA")) {
-    imageName = "wandmodel-ftxa.png"
-  } else if (daikinType.startsWith("FTXP")) {
-    imageName = "wandmodel-ftxp.png"
-  } else if (daikinType.startsWith("FVXM")) {
-    imageName = "vloermodel-fvxm.png"
+
+  // Multi-split: toon buitendeel MS
+  if (acType.startsWith("MS")) {
+    imageName = "buitendeel-ms.png"
+  // Evolar ombouw buitendeel
+  } else if (outdoorType.includes("evolar")) {
+    imageName = "evolar-ombouw-zwart.png"
+  // Cassette
   } else if (daikinType.startsWith("FCAG") || daikinType.startsWith("BYCQ")) {
     imageName = "cassette-bycq.png"
-  } else {
-    // FTXM, FTXF, FTXJ, MS-types, default
+  // Vloermodel FVXM
+  } else if (daikinType.startsWith("FVXM")) {
+    imageName = "vloermodel-fvxm.png"
+  // Design FTXA – kleurvariant
+  } else if (daikinType.startsWith("FTXA")) {
+    if (color.includes("zwart") || color.includes("black")) {
+      imageName = "wandmodel-ftxa-zwart.png"
+    } else if (color.includes("zilver") || color.includes("silver") || color.includes("grijs")) {
+      imageName = "wandmodel-ftxa-zilver.png"
+    } else {
+      imageName = "wandmodel-ftxa-wit.png" // standaard wit
+    }
+  // Wandmodel FTXP
+  } else if (daikinType.startsWith("FTXP")) {
+    imageName = "wandmodel-ftxp.png"
+  // Wandmodel FTXM (ook FTXF, FTXJ, overige split)
+  } else if (daikinType.startsWith("FTXM") || daikinType.startsWith("FTXF") || daikinType.startsWith("FTXJ")) {
     imageName = "wandmodel-ftxm.png"
+  } else {
+    // Generiek split buitendeel als fallback
+    imageName = "buitendeel-split.png"
   }
 
   const imgPath = path.join(process.cwd(), "templates", "images", imageName)
