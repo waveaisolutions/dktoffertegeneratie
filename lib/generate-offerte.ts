@@ -423,17 +423,39 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
 }
 
 
+function getFirstEnabledACOption(payload: OffertePayload): { opt: ACSubOption; g: string; s: string } | null {
+  const o = payload.options
+  for (const g of ["1", "2", "3"]) {
+    const group = o?.[g]
+    if (!group) continue
+    for (const s of Object.keys(group)) {
+      const opt = group[s] as ACSubOption | undefined
+      if (opt?.enabled) return { opt, g, s }
+    }
+  }
+  return null
+}
+
+function getOfferteImageLabel(payload: OffertePayload): string {
+  const found = getFirstEnabledACOption(payload)
+  if (!found) return ""
+  const { opt, g, s } = found
+  const location = opt.location?.value ?? ""
+  const label = `Optie ${g}.${s}${location ? ` – ${location}` : ""}`
+  return label
+}
+
 function getOfferteImagePath(payload: OffertePayload): string | null {
   if (payload.systemType !== "Airconditioning") return null
 
-  const options = (payload.options?.subOptions ?? []) as ACSubOption[]
-  const firstEnabled = options.find((o) => o.enabled)
-  if (!firstEnabled) return null
+  const found = getFirstEnabledACOption(payload)
+  if (!found) return null
+  const { opt } = found
 
-  const daikinType = (firstEnabled.daikinType?.value ?? "").toUpperCase()
-  const acType = (firstEnabled.acType?.value ?? "").toUpperCase()
-  const color = (firstEnabled.color?.value ?? "").toLowerCase()
-  const outdoorType = (firstEnabled.outdoorType?.value ?? "").toLowerCase()
+  const daikinType = (opt.daikinType?.value ?? "").toUpperCase()
+  const acType = (opt.acType?.value ?? "").toUpperCase()
+  const color = (opt.color?.value ?? "").toLowerCase()
+  const outdoorType = (opt.outdoorType?.value ?? "").toLowerCase()
 
   let imageName: string
 
@@ -519,7 +541,10 @@ export async function generateOfferteDoc(
         klantadres,
         klantpostcodeplaats,
         "Specificatieinstallatie&uitgangspunten": ai.specificatie,
-        ...(imagePath ? { offerteImage: imagePath } : {}),
+        ...(imagePath ? {
+          offerteImageLabel: getOfferteImageLabel(payload),
+          offerteImage: imagePath,
+        } : {}),
       }
     : {
         offertedatum: ai.offertedatum,
