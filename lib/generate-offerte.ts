@@ -529,11 +529,17 @@ export async function generateOfferteDoc(
   const modules: object[] = []
 
   if (isAC) {
+    const TARGET_HEIGHT = 170 // pixels
     modules.push(
       new ImageModule({
         centered: false,
         getImage: (tagValue: string) => fs.readFileSync(tagValue),
-        getSize: () => [200, 150] as [number, number],
+        getSize: (imgBuffer: Buffer) => {
+          const pngWidth = imgBuffer.readUInt32BE(16)
+          const pngHeight = imgBuffer.readUInt32BE(20)
+          const scaledWidth = Math.round((pngWidth / pngHeight) * TARGET_HEIGHT)
+          return [scaledWidth, TARGET_HEIGHT] as [number, number]
+        },
       })
     )
   }
