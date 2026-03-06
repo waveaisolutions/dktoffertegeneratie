@@ -423,77 +423,54 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
 }
 
 
-function getFirstEnabledACOption(payload: OffertePayload): { opt: ACSubOption; g: string; s: string } | null {
+function resolveACImageName(opt: ACSubOption): string {
+  const daikinType = (opt.daikinType?.value ?? "").toUpperCase()
+  const acType     = (opt.acType?.value ?? "").toUpperCase()
+  const color      = (opt.color?.value ?? "").toLowerCase()
+  const outdoorType = (opt.outdoorType?.value ?? "").toLowerCase()
+
+  // Multi-split outdoor unit
+  if (/^MS\d/.test(acType)) return "buitendeel-ms.png"
+  // Evolar outdoor casing
+  if (outdoorType.includes("evolar")) return "evolar-ombouw-zwart.png"
+  // Cassette
+  if (daikinType.startsWith("FCAG") || daikinType.startsWith("BYCQ")) return "cassette-bycq.png"
+  // Vloermodel
+  if (daikinType.startsWith("FVXM")) return "vloermodel-fvxm.png"
+  // Design FTXA – kleurvariant
+  if (daikinType.startsWith("FTXA")) {
+    if (color.includes("zwart") || color.includes("black")) return "wandmodel-ftxa-zwart.png"
+    if (color.includes("zilver") || color.includes("silver") || color.includes("grijs")) return "wandmodel-ftxa-zilver.png"
+    return "wandmodel-ftxa-wit.png"
+  }
+  if (daikinType.startsWith("FTXP")) return "wandmodel-ftxp.png"
+  if (daikinType.startsWith("FTXM") || daikinType.startsWith("FTXF") || daikinType.startsWith("FTXJ")) return "wandmodel-ftxm.png"
+  // Fallback: generiek split buitendeel
+  return "buitendeel-split.png"
+}
+
+function buildACImages(payload: OffertePayload): { offerteImageLabel: string; offerteImage: string }[] {
+  if (payload.systemType !== "Airconditioning") return []
   const o = payload.options
+  const result: { offerteImageLabel: string; offerteImage: string }[] = []
+
   for (const g of ["1", "2", "3"]) {
     const group = o?.[g]
     if (!group) continue
     for (const s of Object.keys(group)) {
       const opt = group[s] as ACSubOption | undefined
-      if (opt?.enabled) return { opt, g, s }
+      if (!opt?.enabled) continue
+
+      const imageName = resolveACImageName(opt)
+      const imgPath = path.join(process.cwd(), "templates", "images", imageName)
+      if (!fs.existsSync(imgPath)) continue
+
+      const location = opt.location?.value ?? ""
+      const label = `Optie ${g}.${s}${location ? ` – ${location}` : ""}`
+      result.push({ offerteImageLabel: label, offerteImage: imgPath })
     }
   }
-  return null
-}
-
-function getOfferteImageLabel(payload: OffertePayload): string {
-  const found = getFirstEnabledACOption(payload)
-  if (!found) return ""
-  const { opt, g, s } = found
-  const location = opt.location?.value ?? ""
-  const label = `Optie ${g}.${s}${location ? ` – ${location}` : ""}`
-  return label
-}
-
-function getOfferteImagePath(payload: OffertePayload): string | null {
-  if (payload.systemType !== "Airconditioning") return null
-
-  const found = getFirstEnabledACOption(payload)
-  if (!found) return null
-  const { opt } = found
-
-  const daikinType = (opt.daikinType?.value ?? "").toUpperCase()
-  const acType = (opt.acType?.value ?? "").toUpperCase()
-  const color = (opt.color?.value ?? "").toLowerCase()
-  const outdoorType = (opt.outdoorType?.value ?? "").toLowerCase()
-
-  let imageName: string
-
-  // Multi-split: toon buitendeel MS
-  if (acType.startsWith("MS")) {
-    imageName = "buitendeel-ms.png"
-  // Evolar ombouw buitendeel
-  } else if (outdoorType.includes("evolar")) {
-    imageName = "evolar-ombouw-zwart.png"
-  // Cassette
-  } else if (daikinType.startsWith("FCAG") || daikinType.startsWith("BYCQ")) {
-    imageName = "cassette-bycq.png"
-  // Vloermodel FVXM
-  } else if (daikinType.startsWith("FVXM")) {
-    imageName = "vloermodel-fvxm.png"
-  // Design FTXA – kleurvariant
-  } else if (daikinType.startsWith("FTXA")) {
-    if (color.includes("zwart") || color.includes("black")) {
-      imageName = "wandmodel-ftxa-zwart.png"
-    } else if (color.includes("zilver") || color.includes("silver") || color.includes("grijs")) {
-      imageName = "wandmodel-ftxa-zilver.png"
-    } else {
-      imageName = "wandmodel-ftxa-wit.png" // standaard wit
-    }
-  // Wandmodel FTXP
-  } else if (daikinType.startsWith("FTXP")) {
-    imageName = "wandmodel-ftxp.png"
-  // Wandmodel FTXM (ook FTXF, FTXJ, overige split)
-  } else if (daikinType.startsWith("FTXM") || daikinType.startsWith("FTXF") || daikinType.startsWith("FTXJ")) {
-    imageName = "wandmodel-ftxm.png"
-  } else {
-    // Generiek split buitendeel als fallback
-    imageName = "buitendeel-split.png"
-  }
-
-  const imgPath = path.join(process.cwd(), "templates", "images", imageName)
-  if (!fs.existsSync(imgPath)) return null
-  return imgPath
+  return result
 }
 
 export async function generateOfferteDoc(
@@ -510,16 +487,15 @@ export async function generateOfferteDoc(
   const klantadres = payload.customer.address ?? ""
   const klantpostcodeplaats = `${payload.customer.postcode ?? ""}  ${payload.customer.city ?? ""}`.trim()
 
-  const imagePath = isAC ? getOfferteImagePath(payload) : null
+  const acImages = isAC ? buildACImages(payload) : []
   const modules: object[] = []
 
-  if (imagePath) {
+  if (isAC) {
     modules.push(
       new ImageModule({
-        centered: true,
-        // tagValue is the file path string we pass in data.offerteImage
+        centered: false,
         getImage: (tagValue: string) => fs.readFileSync(tagValue),
-        getSize: () => [400, 300] as [number, number],
+        getSize: () => [200, 150] as [number, number],
       })
     )
   }
@@ -541,10 +517,7 @@ export async function generateOfferteDoc(
         klantadres,
         klantpostcodeplaats,
         "Specificatieinstallatie&uitgangspunten": ai.specificatie,
-        ...(imagePath ? {
-          offerteImageLabel: getOfferteImageLabel(payload),
-          offerteImage: imagePath,
-        } : {}),
+        acImages,
       }
     : {
         offertedatum: ai.offertedatum,
