@@ -443,7 +443,7 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
     temperature: 0.4,
   })
 
-  const raw = response.choices[0]?.message?.content ?? "{}"
+  const raw = (response.choices[0]?.message?.content ?? "{}").replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim()
   const parsed = JSON.parse(raw)
 
   return {
