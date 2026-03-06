@@ -122,21 +122,8 @@ function hasValue(f?: NoteField): boolean {
   return !!(f?.value)
 }
 
-function buildACSpecification(payload: OffertePayload): string {
-  const o = payload.options
+function buildACOptionSpec(opt: ACSubOption, g: string, s: string, group: Record<string, ACSubOption | undefined>): string {
   const lines: string[] = []
-
-  for (const g of ["1", "2", "3"]) {
-    const group = o?.[g]
-    if (!group) continue
-    for (const s of Object.keys(group)) {
-      const opt = group[s] as ACSubOption | undefined
-      if (!opt || !opt.enabled) continue
-
-      // Skip options where all values are empty
-      const hasData = [opt.location, opt.indoorUnitPlace, opt.color, opt.daikinType,
-        opt.outdoorType, opt.outdoorPlace, opt.pipeRoute].some(hasValue)
-      if (!hasData) continue
 
       // Option header
       const headerParts = [opt.location?.value, opt.indoorUnitPlace?.value].filter(Boolean)
@@ -241,15 +228,47 @@ function buildACSpecification(payload: OffertePayload): string {
       // Remarks
       if (opt.remarks?.trim()) lines.push(`  ${opt.remarks.trim()}`)
 
-      lines.push("")
+  return lines.join("\n")
+}
+
+const AC_CLOSING = [
+  "De installatie wordt compleet geleverd en gemonteerd conform STEK / F-gassen verordening.",
+  "De airconditioning is voorzien van het nieuwe milieuvriendelijke R32 koudemiddel.",
+].join("\n")
+
+function buildACOptions(payload: OffertePayload): { optieSpec: string; offerteImageLabel: string; offerteImage: string; offerteImageOutdoor: string }[] {
+  const o = payload.options
+  const imagesDir = path.join(process.cwd(), "templates", "images")
+  const result: { optieSpec: string; offerteImageLabel: string; offerteImage: string; offerteImageOutdoor: string }[] = []
+
+  for (const g of ["1", "2", "3"]) {
+    const group = o?.[g]
+    if (!group) continue
+    for (const s of Object.keys(group)) {
+      const opt = group[s] as ACSubOption | undefined
+      if (!opt?.enabled) continue
+      const hasData = [opt.location, opt.indoorUnitPlace, opt.color, opt.daikinType,
+        opt.outdoorType, opt.outdoorPlace, opt.pipeRoute].some(hasValue)
+      if (!hasData) continue
+
+      const indoorName  = resolveIndoorImageName(opt)
+      const outdoorName = resolveOutdoorImageName(opt)
+      const indoorPath  = indoorName ? path.join(imagesDir, indoorName) : null
+      const outdoorPath = path.join(imagesDir, outdoorName)
+      if (!indoorPath || !fs.existsSync(indoorPath) || !fs.existsSync(outdoorPath)) continue
+
+      const location = opt.location?.value ?? ""
+      const label = `Optie ${g}.${s}${location ? ` – ${location}` : ""}`
+
+      result.push({
+        optieSpec: buildACOptionSpec(opt, g, s, group as Record<string, ACSubOption | undefined>),
+        offerteImageLabel: label,
+        offerteImage: indoorPath,
+        offerteImageOutdoor: outdoorPath,
+      })
     }
   }
-
-  // Verbatim closing lines
-  lines.push("De installatie wordt compleet geleverd en gemonteerd conform STEK / F-gassen verordening.")
-  lines.push("De airconditioning is voorzien van het nieuwe milieuvriendelijke R32 koudemiddel.")
-
-  return lines.join("\n")
+  return result
 }
 
 function buildWPSpecification(payload: OffertePayload): string {
@@ -434,7 +453,7 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
     aanhef: parsed.aanhef ?? payload.customer.salutation,
     gutterColor: parsed.gutterColor ?? "",
     locatievariatie1: parsed.locatievariatie1,
-    specificatie: isAC ? buildACSpecification(payload) : buildWPSpecification(payload),
+    specificatie: isAC ? "" : buildWPSpecification(payload),
   }
 }
 
@@ -506,7 +525,7 @@ export async function generateOfferteDoc(
   const klantadres = payload.customer.address ?? ""
   const klantpostcodeplaats = `${payload.customer.postcode ?? ""}  ${payload.customer.city ?? ""}`.trim()
 
-  const acImages = isAC ? buildACImages(payload) : []
+  const acOptions = isAC ? buildACOptions(payload) : []
   const modules: object[] = []
 
   if (isAC) {
@@ -535,8 +554,8 @@ export async function generateOfferteDoc(
         locatievariatie1: ai.locatievariatie1 ?? "",
         klantadres,
         klantpostcodeplaats,
-        "Specificatieinstallatie&uitgangspunten": ai.specificatie,
-        acImages,
+        acOptions,
+        acClosing: AC_CLOSING,
       }
     : {
         offertedatum: ai.offertedatum,
