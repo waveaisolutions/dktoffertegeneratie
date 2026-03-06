@@ -423,21 +423,12 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
 }
 
 
-function resolveACImageName(opt: ACSubOption): string {
+function resolveIndoorImageName(opt: ACSubOption): string | null {
   const daikinType = (opt.daikinType?.value ?? "").toUpperCase()
-  const acType     = (opt.acType?.value ?? "").toUpperCase()
   const color      = (opt.color?.value ?? "").toLowerCase()
-  const outdoorType = (opt.outdoorType?.value ?? "").toLowerCase()
 
-  // Multi-split outdoor unit
-  if (/^MS\d/.test(acType)) return "buitendeel-ms.png"
-  // Evolar outdoor casing
-  if (outdoorType.includes("evolar")) return "evolar-ombouw-zwart.png"
-  // Cassette
   if (daikinType.startsWith("FCAG") || daikinType.startsWith("BYCQ")) return "cassette-bycq.png"
-  // Vloermodel
   if (daikinType.startsWith("FVXM")) return "vloermodel-fvxm.png"
-  // Design FTXA – kleurvariant
   if (daikinType.startsWith("FTXA")) {
     if (color.includes("zwart") || color.includes("black")) return "wandmodel-ftxa-zwart.png"
     if (color.includes("zilver") || color.includes("silver") || color.includes("grijs")) return "wandmodel-ftxa-zilver.png"
@@ -445,14 +436,22 @@ function resolveACImageName(opt: ACSubOption): string {
   }
   if (daikinType.startsWith("FTXP")) return "wandmodel-ftxp.png"
   if (daikinType.startsWith("FTXM") || daikinType.startsWith("FTXF") || daikinType.startsWith("FTXJ")) return "wandmodel-ftxm.png"
-  // Fallback: generiek split buitendeel
+  return null
+}
+
+function resolveOutdoorImageName(opt: ACSubOption): string {
+  const acType      = (opt.acType?.value ?? "").toUpperCase()
+  const outdoorType = (opt.outdoorType?.value ?? "").toLowerCase()
+  if (/^MS\d/.test(acType)) return "buitendeel-ms.png"
+  if (outdoorType.includes("evolar")) return "evolar-ombouw-zwart.png"
   return "buitendeel-split.png"
 }
 
-function buildACImages(payload: OffertePayload): { offerteImageLabel: string; offerteImage: string }[] {
+function buildACImages(payload: OffertePayload): { offerteImageLabel: string; offerteImage: string; offerteImageOutdoor: string }[] {
   if (payload.systemType !== "Airconditioning") return []
   const o = payload.options
-  const result: { offerteImageLabel: string; offerteImage: string }[] = []
+  const imagesDir = path.join(process.cwd(), "templates", "images")
+  const result: { offerteImageLabel: string; offerteImage: string; offerteImageOutdoor: string }[] = []
 
   for (const g of ["1", "2", "3"]) {
     const group = o?.[g]
@@ -461,13 +460,17 @@ function buildACImages(payload: OffertePayload): { offerteImageLabel: string; of
       const opt = group[s] as ACSubOption | undefined
       if (!opt?.enabled) continue
 
-      const imageName = resolveACImageName(opt)
-      const imgPath = path.join(process.cwd(), "templates", "images", imageName)
-      if (!fs.existsSync(imgPath)) continue
+      const indoorName  = resolveIndoorImageName(opt)
+      const outdoorName = resolveOutdoorImageName(opt)
+      const indoorPath  = indoorName  ? path.join(imagesDir, indoorName)  : null
+      const outdoorPath = path.join(imagesDir, outdoorName)
+
+      if (!indoorPath || !fs.existsSync(indoorPath)) continue
+      if (!fs.existsSync(outdoorPath)) continue
 
       const location = opt.location?.value ?? ""
       const label = `Optie ${g}.${s}${location ? ` – ${location}` : ""}`
-      result.push({ offerteImageLabel: label, offerteImage: imgPath })
+      result.push({ offerteImageLabel: label, offerteImage: indoorPath, offerteImageOutdoor: outdoorPath })
     }
   }
   return result
