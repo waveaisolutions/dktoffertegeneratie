@@ -423,7 +423,7 @@ export async function generateOfferteText(payload: OffertePayload): Promise<AiOf
 }
 
 
-function getOfferteImageBuffer(payload: OffertePayload): Buffer | null {
+function getOfferteImagePath(payload: OffertePayload): string | null {
   if (payload.systemType !== "Airconditioning") return null
 
   const options = (payload.options?.subOptions ?? []) as ACSubOption[]
@@ -443,12 +443,12 @@ function getOfferteImageBuffer(payload: OffertePayload): Buffer | null {
     imageName = "cassette-bycq.png"
   } else {
     // FTXM, FTXF, FTXJ, MS-types, default
-    imageName = "wandmodel-ftxm.jpeg"
+    imageName = "wandmodel-ftxm.png"
   }
 
   const imgPath = path.join(process.cwd(), "templates", "images", imageName)
   if (!fs.existsSync(imgPath)) return null
-  return fs.readFileSync(imgPath)
+  return imgPath
 }
 
 export async function generateOfferteDoc(
@@ -465,14 +465,15 @@ export async function generateOfferteDoc(
   const klantadres = payload.customer.address ?? ""
   const klantpostcodeplaats = `${payload.customer.postcode ?? ""}  ${payload.customer.city ?? ""}`.trim()
 
-  const imageBuffer = isAC ? getOfferteImageBuffer(payload) : null
+  const imagePath = isAC ? getOfferteImagePath(payload) : null
   const modules: object[] = []
 
-  if (imageBuffer) {
+  if (imagePath) {
     modules.push(
       new ImageModule({
         centered: true,
-        getImage: (buf: Buffer) => buf,
+        // tagValue is the file path string we pass in data.offerteImage
+        getImage: (tagValue: string) => fs.readFileSync(tagValue),
         getSize: () => [400, 300] as [number, number],
       })
     )
@@ -495,7 +496,7 @@ export async function generateOfferteDoc(
         klantadres,
         klantpostcodeplaats,
         "Specificatieinstallatie&uitgangspunten": ai.specificatie,
-        ...(imageBuffer ? { offerteImage: imageBuffer } : {}),
+        ...(imagePath ? { offerteImage: imagePath } : {}),
       }
     : {
         offertedatum: ai.offertedatum,
